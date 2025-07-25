@@ -2,9 +2,13 @@
 
 echo "Starting Django application..."
 
+# データベース接続を確認
+echo "Checking database connection..."
+python manage.py check --database default
+
 # マイグレーションを実行
 echo "Running migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
 # 静的ファイルを収集
 echo "Collecting static files..."

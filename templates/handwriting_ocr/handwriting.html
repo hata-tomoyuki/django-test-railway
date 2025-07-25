@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block title %}手書き文字認識{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">手書き文字認識</h3>
+                    <div class="alert alert-info mt-2">
+                        <strong>ヒント:</strong>
+                        <ul class="mb-0">
+                            <li>大きな文字で書く（小さすぎる文字は認識しにくい）</li>
+                            <li>はっきりと書く（薄い文字よりも濃い文字の方が認識しやすい）</li>
+                            <li>英語の方が認識精度が高い（日本語よりも英語を推奨）</li>
+                            <li>ひらがな・カタカナは漢字よりも認識しやすい</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 手書きエリア -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="canvas" class="form-label">手書きエリア</label>
+                                <div class="border rounded p-2" style="background-color: #f8f9fa;">
+                                    <canvas id="handwritingCanvas" width="400" height="300"
+                                            style="border: 1px solid #ccc; background-color: white; cursor: crosshair;"></canvas>
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearCanvas()">
+                                        <i class="fas fa-eraser"></i> クリア
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="recognizeText()">
+                                        <i class="fas fa-search"></i> 認識開始
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 認識結果エリア -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="recognizedText" class="form-label">認識結果</label>
+                                <textarea class="form-control" id="recognizedText" rows="8"
+                                          placeholder="ここに認識された文字が表示されます..."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confidence" class="form-label">認識状況</label>
+                                <div id="confidence" class="alert alert-info">
+                                    手書きエリアに文字を書いて「認識開始」ボタンを押してください
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 設定オプション -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>設定</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label for="brushSize" class="form-label">ブラシサイズ</label>
+                                            <input type="range" class="form-range" id="brushSize" min="1" max="20" value="5">
+                                            <small class="text-muted">現在: <span id="brushSizeValue">5</span>px</small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="brushColor" class="form-label">ブラシ色</label>
+                                            <input type="color" class="form-control form-control-color" id="brushColor" value="#000000">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="language" class="form-label">認識言語</label>
+                                            <select class="form-select" id="language">
+                                                <option value="eng">英語（推奨）</option>
+                                                <option value="jpn">日本語</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ローディングオーバーレイ -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none"
+     style="background-color: rgba(0,0,0,0.5); z-index: 9999;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">読み込み中...</span>
+        </div>
+        <span class="text-light ms-3">文字を認識中...</span>
+    </div>
+</div>
+
+<script>
+// Canvas設定
+const canvas = document.getElementById('handwritingCanvas');
+const ctx = canvas.getContext('2d');
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+// 初期設定
+ctx.strokeStyle = '#000000';
+ctx.lineWidth = 5;
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+
+// マウスイベント
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseout', stopDrawing);
+
+// タッチイベント（モバイル対応）
+canvas.addEventListener('touchstart', handleTouch);
+canvas.addEventListener('touchmove', handleTouch);
+canvas.addEventListener('touchend', stopDrawing);
+
+function startDrawing(e) {
+    isDrawing = true;
+    const pos = getPosition(e);
+    lastX = pos.x;
+    lastY = pos.y;
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+
+    const pos = getPosition(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    lastX = pos.x;
+    lastY = pos.y;
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+function getPosition(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches[0].clientX) - rect.left;
+    const y = (e.clientY || e.touches[0].clientY) - rect.top;
+    return { x, y };
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' :
+                                     e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+}
+
+// キャンバスクリア
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('recognizedText').value = '';
+    document.getElementById('confidence').innerHTML = 'キャンバスをクリアしました';
+    document.getElementById('confidence').className = 'alert alert-info';
+}
+
+// ブラシサイズ変更
+document.getElementById('brushSize').addEventListener('input', function() {
+    const size = this.value;
+    ctx.lineWidth = size;
+    document.getElementById('brushSizeValue').textContent = size;
+});
+
+// ブラシ色変更
+document.getElementById('brushColor').addEventListener('change', function() {
+    ctx.strokeStyle = this.value;
+});
+
+// 文字認識実行
+function recognizeText() {
+    // キャンバスが空かチェック
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const hasContent = imageData.data.some(pixel => pixel !== 0);
+
+    if (!hasContent) {
+        document.getElementById('confidence').innerHTML = '手書きエリアに文字を書いてください';
+        document.getElementById('confidence').className = 'alert alert-warning';
+        return;
+    }
+
+    // ローディング表示
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+    document.getElementById('confidence').innerHTML = '文字を認識中...';
+    document.getElementById('confidence').className = 'alert alert-info';
+
+    // キャンバスをBase64に変換
+    const imageDataUrl = canvas.toDataURL('image/png');
+
+    // APIに送信
+    fetch('{% url "handwriting_ocr:recognize_handwriting" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            image: imageDataUrl,
+            language: document.getElementById('language').value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+
+        if (data.success) {
+            document.getElementById('recognizedText').value = data.recognized_text;
+            document.getElementById('confidence').innerHTML = '文字認識が完了しました';
+            document.getElementById('confidence').className = 'alert alert-success';
+        } else {
+            document.getElementById('confidence').innerHTML = `エラー: ${data.error}`;
+            document.getElementById('confidence').className = 'alert alert-danger';
+        }
+    })
+    .catch(error => {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+        document.getElementById('confidence').innerHTML = `通信エラー: ${error.message}`;
+        document.getElementById('confidence').className = 'alert alert-danger';
+    });
+}
+
+// CSRFトークン取得
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+#handwritingCanvas {
+    touch-action: none; /* モバイルでのスクロールを防ぐ */
+}
+
+.form-control-color {
+    width: 100%;
+    height: 38px;
+}
+</style>
+{% endblock %}

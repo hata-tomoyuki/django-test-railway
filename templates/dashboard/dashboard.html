@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}
+<div class="h1">ダッシュボード</div>
+{% endblock %}
+
+{% block content %}
+<!-- ユーザー情報 -->
+<div class="user-info mb-4">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">ようこそ、{{ user.first_name }} {{ user.last_name }}さん！</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>アカウントID:</strong> {{ user.account_id }}</p>
+                    <p><strong>メールアドレス:</strong> {{ user.email }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>登録日:</strong> {{ user.created_at|date:"Y年m月d日" }}</p>
+                    {% if days_since_joined %}
+                        <p><strong>登録から:</strong> {{ days_since_joined }}日経過</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 現在時刻 -->
+<div class="current-time mb-4">
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">現在時刻</h3>
+            <p class="card-text">{{ current_time|date:"Y年m月d日 H:i:s" }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- 統計情報 -->
+<div class="stats mb-4">
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">統計情報</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h4 class="text-primary">{{ stats.total_users }}</h4>
+                        <p>総ユーザー数</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h4 class="text-success">{{ stats.active_users }}</h4>
+                        <p>アクティブユーザー</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h4 class="text-info">{{ stats.new_users_today }}</h4>
+                        <p>今日の新規ユーザー</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ナビゲーション -->
+<div class="navigation">
+    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+        <a href="{% url 'dashboard:profile' %}" class="btn btn-primary me-md-2">プロフィール</a>
+        <!-- POSTフォームでログアウト -->
+        <form method="post" action="{% url 'accounts:logout' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">ログアウト</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if user.is_authenticated %}
+<div class="h1">MyPage</div>
+{% else %}
+<div class="h1">Main</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated %}
+<div class="h2">Welcome {{ user.first_name }} {{ user.last_name }}</div>
+<div class="d-grid gap-2 d-md-flex justify-content-md-center">
+    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary me-md-2">ダッシュボード</a>
+    <a href="{% url 'dashboard:profile' %}" class="btn btn-info me-md-2">プロフィール</a>
+    <!-- POSTフォームでログアウト -->
+    <form method="post" action="{% url 'accounts:logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary">Logout</button>
+    </form>
+</div>
+{% else %}
+<div class="d-grid gap-2 d-md-flex justify-content-md-center">
+    <a href="{% url 'accounts:signup' %}" class="btn btn-primary me-md-2">Signup</a>
+    <a href="{% url 'accounts:login' %}" class="btn btn-primary">Login</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}
+<div class="h1">プロフィール</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <!-- プロフィール情報 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="card-title mb-0">プロフィール情報</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>アカウントID:</strong></p>
+                        <p class="text-muted">{{ user.account_id }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>メールアドレス:</strong></p>
+                        <p class="text-muted">{{ user.email }}</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>姓:</strong></p>
+                        <p class="text-muted">{{ user.last_name|default:"未設定" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>名:</strong></p>
+                        <p class="text-muted">{{ user.first_name|default:"未設定" }}</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>生年月日:</strong></p>
+                        <p class="text-muted">{{ user.birth_date|date:"Y年m月d日"|default:"未設定" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>登録日:</strong></p>
+                        <p class="text-muted">{{ user.created_at|date:"Y年m月d日 H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- プロフィール完成度 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0">プロフィール完成度</h3>
+            </div>
+            <div class="card-body">
+                {% if profile_complete %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> プロフィールが完成しています！
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> プロフィールを完成させてください
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" style="width: 60%;" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100">60%</div>
+                    </div>
+                    <p class="text-muted">姓、名、メールアドレスを設定するとプロフィールが完成します。</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- アカウント設定 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0">アカウント設定</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>アカウント状態:</strong></p>
+                        {% if user.is_active %}
+                            <span class="badge bg-success">アクティブ</span>
+                        {% else %}
+                            <span class="badge bg-danger">非アクティブ</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>スタッフ権限:</strong></p>
+                        {% if user.is_staff %}
+                            <span class="badge bg-primary">スタッフ</span>
+                        {% else %}
+                            <span class="badge bg-secondary">一般ユーザー</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ナビゲーション -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary me-md-2">ダッシュボードに戻る</a>
+            <!-- POSTフォームでログアウト -->
+            <form method="post" action="{% url 'accounts:logout' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary">ログアウト</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

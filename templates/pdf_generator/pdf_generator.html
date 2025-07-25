@@ -1,0 +1,559 @@
+{% extends 'base.html' %}
+
+{% block title %}PDF生成{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">PDF生成ツール</h3>
+                    <div class="alert alert-info mt-2">
+                        <strong>機能:</strong>
+                        <ul class="mb-0">
+                            <li>WebページのURLからPDFを生成</li>
+                            <li>HTMLコンテンツからPDFを生成</li>
+                            <li>カスタマイズ可能なページ設定</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- wkhtmltopdf インストール状況チェック -->
+                    <div id="wkhtmltopdfStatus" class="alert alert-warning">
+                        <i class="fas fa-spinner fa-spin"></i> wkhtmltopdfのインストール状況を確認中...
+                    </div>
+
+                    <!-- タブナビゲーション -->
+                    <ul class="nav nav-tabs" id="pdfTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="url-tab" data-bs-toggle="tab" data-bs-target="#url-tab-pane" type="button" role="tab">
+                                <i class="fas fa-link"></i> URLからPDF生成
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="html-tab" data-bs-toggle="tab" data-bs-target="#html-tab-pane" type="button" role="tab">
+                                <i class="fas fa-code"></i> HTMLからPDF生成
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="print-tab" data-bs-toggle="tab" data-bs-target="#print-tab-pane" type="button" role="tab">
+                                <i class="fas fa-print"></i> 現在のページを印刷
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- タブコンテンツ -->
+                    <div class="tab-content mt-3" id="pdfTabsContent">
+                        <!-- URLからPDF生成 -->
+                        <div class="tab-pane fade show active" id="url-tab-pane" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="urlInput" class="form-label">WebページのURL</label>
+                                        <input type="url" class="form-control" id="urlInput"
+                                               placeholder="https://example.com または example.com">
+                                        <div class="form-text">URLを入力してください（http://またはhttps://は自動で追加されます）</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="pageSize" class="form-label">ページサイズ</label>
+                                            <select class="form-select" id="pageSize">
+                                                <option value="A4">A4</option>
+                                                <option value="A3">A3</option>
+                                                <option value="A5">A5</option>
+                                                <option value="Letter">Letter</option>
+                                                <option value="Legal">Legal</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="orientation" class="form-label">向き</label>
+                                            <select class="form-select" id="orientation">
+                                                <option value="Portrait">縦向き</option>
+                                                <option value="Landscape">横向き</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-primary" onclick="generatePdfFromUrl()">
+                                            <i class="fas fa-file-pdf"></i> PDF生成
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6>最近生成したPDF</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="recentPdfs">
+                                                <p class="text-muted">まだPDFが生成されていません</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HTMLからPDF生成 -->
+                        <div class="tab-pane fade" id="html-tab-pane" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="titleInput" class="form-label">ファイル名</label>
+                                        <input type="text" class="form-control" id="titleInput"
+                                               placeholder="generated_document" value="generated_document">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="htmlInput" class="form-label">HTMLコンテンツ</label>
+                                        <textarea class="form-control" id="htmlInput" rows="15"
+                                                  placeholder="<html><body><h1>Hello World</h1><p>This is a test document.</p></body></html>"></textarea>
+                                        <div class="form-text">HTMLコードを入力してください</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="pageSizeHtml" class="form-label">ページサイズ</label>
+                                            <select class="form-select" id="pageSizeHtml">
+                                                <option value="A4">A4</option>
+                                                <option value="A3">A3</option>
+                                                <option value="A5">A5</option>
+                                                <option value="Letter">Letter</option>
+                                                <option value="Legal">Legal</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="orientationHtml" class="form-label">向き</label>
+                                            <select class="form-select" id="orientationHtml">
+                                                <option value="Portrait">縦向き</option>
+                                                <option value="Landscape">横向き</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-primary" onclick="generatePdfFromHtml()">
+                                            <i class="fas fa-file-pdf"></i> PDF生成
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6>HTMLプレビュー</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="htmlPreview" style="border: 1px solid #ddd; padding: 10px; min-height: 200px; background-color: #f8f9fa;">
+                                                <p class="text-muted">HTMLコンテンツを入力するとプレビューが表示されます</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 現在のページを印刷 -->
+                        <div class="tab-pane fade" id="print-tab-pane" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="alert alert-info">
+                                        <h5><i class="fas fa-info-circle"></i> 現在のページを印刷</h5>
+                                        <p>この機能を使用すると、現在表示されているページをそのまま印刷またはPDFとして保存できます。</p>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="currentPageUrl" class="form-label">現在のページURL</label>
+                                        <input type="url" class="form-control" id="currentPageUrl" readonly>
+                                        <div class="form-text">現在表示されているページのURLが自動で入力されます</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="pageSizePrint" class="form-label">ページサイズ</label>
+                                            <select class="form-select" id="pageSizePrint">
+                                                <option value="A4">A4</option>
+                                                <option value="A3">A3</option>
+                                                <option value="A5">A5</option>
+                                                <option value="Letter">Letter</option>
+                                                <option value="Legal">Legal</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="orientationPrint" class="form-label">向き</label>
+                                            <select class="form-select" id="orientationPrint">
+                                                <option value="Portrait">縦向き</option>
+                                                <option value="Landscape">横向き</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-primary me-2" onclick="printCurrentPage()">
+                                            <i class="fas fa-print"></i> 印刷ダイアログを開く
+                                        </button>
+                                        <button type="button" class="btn btn-success" onclick="generatePdfFromCurrentPage()">
+                                            <i class="fas fa-file-pdf"></i> PDFとして保存
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6>印刷設定</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="printBackground" checked>
+                                                <label class="form-check-label" for="printBackground">
+                                                    背景を印刷
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="printHeaderFooter" checked>
+                                                <label class="form-check-label" for="printHeaderFooter">
+                                                    ヘッダー・フッターを印刷
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="printMargins" checked>
+                                                <label class="form-check-label" for="printMargins">
+                                                    マージンを印刷
+                                                </label>
+                                            </div>
+                                            <hr>
+                                            <small class="text-muted">
+                                                <strong>ヒント:</strong><br>
+                                                • 「印刷ダイアログを開く」でブラウザの印刷機能を使用<br>
+                                                • 「PDFとして保存」でサーバー側でPDF生成
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ローディングオーバーレイ -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none"
+     style="background-color: rgba(0,0,0,0.5); z-index: 9999;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">読み込み中...</span>
+        </div>
+        <span class="text-light ms-3">PDFを生成中...</span>
+    </div>
+</div>
+
+<script>
+// ページ読み込み時にwkhtmltopdfの状況をチェック
+document.addEventListener('DOMContentLoaded', function() {
+    checkWkhtmltopdf();
+
+    // HTMLプレビューの更新
+    document.getElementById('htmlInput').addEventListener('input', updateHtmlPreview);
+
+    // 現在のページURLを設定
+    document.getElementById('currentPageUrl').value = window.location.href;
+});
+
+// wkhtmltopdfのインストール状況をチェック
+function checkWkhtmltopdf() {
+    fetch('{% url "pdf_generator:check_wkhtmltopdf" %}')
+        .then(response => response.json())
+        .then(data => {
+            const statusDiv = document.getElementById('wkhtmltopdfStatus');
+            if (data.installed) {
+                statusDiv.className = 'alert alert-success';
+                statusDiv.innerHTML = `<i class="fas fa-check"></i> ${data.message} (${data.version})`;
+            } else {
+                statusDiv.className = 'alert alert-danger';
+                statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message}`;
+            }
+        })
+        .catch(error => {
+            const statusDiv = document.getElementById('wkhtmltopdfStatus');
+            statusDiv.className = 'alert alert-danger';
+            statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> エラー: ${error.message}`;
+        });
+}
+
+// URLからPDF生成
+function generatePdfFromUrl() {
+    const url = document.getElementById('urlInput').value.trim();
+    const pageSize = document.getElementById('pageSize').value;
+    const orientation = document.getElementById('orientation').value;
+
+    if (!url) {
+        alert('URLを入力してください');
+        return;
+    }
+
+    // ローディング表示
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+
+    fetch('{% url "pdf_generator:generate_pdf_from_url" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            url: url,
+            page_size: pageSize,
+            orientation: orientation
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        } else {
+            return response.json().then(data => {
+                throw new Error(data.error || 'PDF生成に失敗しました');
+            });
+        }
+    })
+    .then(blob => {
+        // PDFをダウンロード
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${new URL(document.getElementById('urlInput').value).hostname.replace(/\./g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // 最近生成したPDFリストに追加
+        addToRecentPdfs(a.download);
+    })
+    .catch(error => {
+        alert(`エラー: ${error.message}`);
+    })
+    .finally(() => {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+    });
+}
+
+// HTMLからPDF生成
+function generatePdfFromHtml() {
+    const htmlContent = document.getElementById('htmlInput').value.trim();
+    const title = document.getElementById('titleInput').value.trim() || 'generated_document';
+    const pageSize = document.getElementById('pageSizeHtml').value;
+    const orientation = document.getElementById('orientationHtml').value;
+
+    if (!htmlContent) {
+        alert('HTMLコンテンツを入力してください');
+        return;
+    }
+
+    // ローディング表示
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+
+    fetch('{% url "pdf_generator:generate_pdf_from_html" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            html_content: htmlContent,
+            title: title,
+            page_size: pageSize,
+            orientation: orientation
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        } else {
+            return response.json().then(data => {
+                throw new Error(data.error || 'PDF生成に失敗しました');
+            });
+        }
+    })
+    .then(blob => {
+        // PDFをダウンロード
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // 最近生成したPDFリストに追加
+        addToRecentPdfs(a.download);
+    })
+    .catch(error => {
+        alert(`エラー: ${error.message}`);
+    })
+    .finally(() => {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+    });
+}
+
+// HTMLプレビューを更新
+function updateHtmlPreview() {
+    const htmlContent = document.getElementById('htmlInput').value;
+    const previewDiv = document.getElementById('htmlPreview');
+
+    if (htmlContent.trim()) {
+        previewDiv.innerHTML = htmlContent;
+    } else {
+        previewDiv.innerHTML = '<p class="text-muted">HTMLコンテンツを入力するとプレビューが表示されます</p>';
+    }
+}
+
+// 最近生成したPDFリストに追加
+function addToRecentPdfs(filename) {
+    const recentDiv = document.getElementById('recentPdfs');
+    const timestamp = new Date().toLocaleString();
+
+    const pdfItem = document.createElement('div');
+    pdfItem.className = 'mb-2';
+    pdfItem.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-file-pdf text-danger me-2"></i>
+            <div>
+                <small class="text-muted">${timestamp}</small><br>
+                <strong>${filename}</strong>
+            </div>
+        </div>
+    `;
+
+    // 最初の要素として追加
+    if (recentDiv.querySelector('.text-muted')) {
+        recentDiv.innerHTML = '';
+    }
+    recentDiv.insertBefore(pdfItem, recentDiv.firstChild);
+
+    // 最大5件まで表示
+    const items = recentDiv.querySelectorAll('.mb-2');
+    if (items.length > 5) {
+        recentDiv.removeChild(items[items.length - 1]);
+    }
+}
+
+// 現在のページを印刷
+function printCurrentPage() {
+    // ブラウザの印刷ダイアログを開く
+    window.print();
+}
+
+// 現在のページからPDF生成
+function generatePdfFromCurrentPage() {
+    const currentUrl = window.location.href;
+    const pageSize = document.getElementById('pageSizePrint').value;
+    const orientation = document.getElementById('orientationPrint').value;
+
+    // ローディング表示
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+
+    fetch('{% url "pdf_generator:generate_pdf_from_url" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            url: currentUrl,
+            page_size: pageSize,
+            orientation: orientation
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        } else {
+            return response.json().then(data => {
+                throw new Error(data.error || 'PDF生成に失敗しました');
+            });
+        }
+    })
+    .then(blob => {
+        // PDFをダウンロード
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `current_page_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // 最近生成したPDFリストに追加
+        addToRecentPdfs(a.download);
+    })
+    .catch(error => {
+        alert(`エラー: ${error.message}`);
+    })
+    .finally(() => {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+    });
+}
+
+// CSRFトークン取得
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+.form-control-color {
+    width: 100%;
+    height: 38px;
+}
+
+#htmlPreview {
+    font-size: 0.9em;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+/* 印刷用スタイル */
+@media print {
+    .navbar, .btn, .nav-tabs, .card-header, .alert {
+        display: none !important;
+    }
+
+    .container {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-body {
+        padding: 0 !important;
+    }
+}
+</style>
+{% endblock %}

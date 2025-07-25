@@ -145,5 +145,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Railway用のポート設定
 PORT = int(os.getenv('PORT', 8000))
 
+# CSRF設定（Railway用）
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+]
+
+# セッション設定
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 LOGIN_REDIRECT_URL = "accounts:index"
 LOGOUT_REDIRECT_URL = "accounts:login"
